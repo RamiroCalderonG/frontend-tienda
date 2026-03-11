@@ -33,4 +33,11 @@ class ReporteService {
     final data = await _api.get('/reportes/stock-bajo') as List;
     return data.map((e) => ProductoStockBajo.fromJson(e)).toList();
   }
+
+  Future<MapaVentas> getMapaVentas(DateTime inicio, DateTime fin) async {
+    final data = await _api.get(
+      '/reportes/mapa-ventas?fecha_inicio=${_fmt(inicio)}&fecha_fin=${_fmt(fin)}',
+    );
+    return MapaVentas.fromJson(data);
+  }
 }

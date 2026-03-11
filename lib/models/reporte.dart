@@ -90,3 +90,31 @@ class ProductoStockBajo {
         categoria: j['categoria'],
       );
 }
+
+class SlotVenta {
+  final String label;
+  final List<double> totales;
+
+  const SlotVenta({required this.label, required this.totales});
+
+  factory SlotVenta.fromJson(Map<String, dynamic> j) => SlotVenta(
+        label: j['label'],
+        totales: (j['totales'] as List).map((e) => (e as num).toDouble()).toList(),
+      );
+}
+
+class MapaVentas {
+  final List<String> fechas;
+  final List<SlotVenta> slots;
+
+  const MapaVentas({required this.fechas, required this.slots});
+
+  double get maxTotal => slots
+      .expand((s) => s.totales)
+      .fold(0.0, (m, v) => v > m ? v : m);
+
+  factory MapaVentas.fromJson(Map<String, dynamic> j) => MapaVentas(
+        fechas: List<String>.from(j['fechas']),
+        slots: (j['slots'] as List).map((e) => SlotVenta.fromJson(e)).toList(),
+      );
+}
