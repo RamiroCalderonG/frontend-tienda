@@ -62,9 +62,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen>
       builder: (_) => _RestockDialog(producto: producto, service: _service),
     );
     if (result != null) {
-      // Refresca productos para actualizar stock mostrado
       await ref.read(productosProvider.notifier).refresh();
-      // Si el historial ya estaba cargado, agrega al inicio
       if (_movimientos.isNotEmpty) {
         setState(() => _movimientos = [result, ..._movimientos]);
       }
@@ -73,6 +71,27 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen>
           SnackBar(
             content: Text('Restock de ${producto.nombre}: +${result.cantidad} unidades'),
             backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _doAjuste(Producto producto) async {
+    final result = await showDialog<Movimiento>(
+      context: context,
+      builder: (_) => _AjusteDialog(producto: producto, service: _service),
+    );
+    if (result != null) {
+      await ref.read(productosProvider.notifier).refresh();
+      if (_movimientos.isNotEmpty) {
+        setState(() => _movimientos = [result, ..._movimientos]);
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ajuste de ${producto.nombre}: ${result.cantidad} unidades'),
+            backgroundColor: Colors.orange,
           ),
         );
       }
@@ -89,7 +108,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen>
         bottom: TabBar(
           controller: _tabs,
           tabs: const [
-            Tab(text: 'Restock'),
+            Tab(text: 'Ajustes'),
             Tab(text: 'Historial'),
           ],
         ),
@@ -97,7 +116,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen>
       body: TabBarView(
         controller: _tabs,
         children: [
-          // ── Tab Restock ─────────────────────────────────────
+          // ── Tab Ajustes ──────────────────────────────────────
           productosAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(child: Text('Error: $e')),
@@ -114,6 +133,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen>
                 itemBuilder: (_, i) => _ProductoRestockTile(
                   producto: activos[i],
                   onRestock: () => _doRestock(activos[i]),
+                  onAjuste: () => _doAjuste(activos[i]),
                 ),
               );
             },
@@ -154,20 +174,25 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen>
   }
 }
 
-// ── Tile producto (tab Restock) ──────────────────────────────
+// ── Tile producto (tab Ajustes) ──────────────────────────────
 
 class _ProductoRestockTile extends StatelessWidget {
   final Producto producto;
   final VoidCallback onRestock;
+  final VoidCallback onAjuste;
 
-  const _ProductoRestockTile({required this.producto, required this.onRestock});
+  const _ProductoRestockTile({
+    required this.producto,
+    required this.onRestock,
+    required this.onAjuste,
+  });
 
   @override
   Widget build(BuildContext context) {
     final stockBajo = producto.stock <= producto.stockMinimo;
     return ListTile(
       title: Text(producto.nombre, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: producto.categoria != null ? Text(producto.categoria!) : null,
+      subtitle: producto.categoria != null ? Text(producto.categoria!.nombre) : null,
       leading: CircleAvatar(
         backgroundColor: stockBajo ? Colors.orange.shade50 : Colors.grey.shade100,
         child: Icon(
@@ -195,6 +220,12 @@ class _ProductoRestockTile extends StatelessWidget {
             ],
           ),
           const SizedBox(width: 8),
+          IconButton(
+            onPressed: onAjuste,
+            icon: const Icon(Icons.remove_circle_outline),
+            color: Colors.orange.shade700,
+            tooltip: 'Merma / Muestra',
+          ),
           FilledButton.icon(
             onPressed: onRestock,
             icon: const Icon(Icons.add, size: 16),
@@ -212,6 +243,13 @@ class _ProductoRestockTile extends StatelessWidget {
 
 // ── Tile movimiento (tab Historial) ─────────────────────────
 
+const _tipoLabel = {
+  'restock': 'Restock',
+  'merma': 'Merma',
+  'muestra': 'Muestra',
+  'otro': 'Ajuste',
+};
+
 class _MovimientoTile extends StatelessWidget {
   final Movimiento movimiento;
   final DateFormat fmtFecha;
@@ -220,25 +258,51 @@ class _MovimientoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final esPositivo = movimiento.cantidad >= 0;
+    final color = esPositivo ? Colors.green : Colors.orange;
+    final signo = esPositivo ? '+' : '';
+    final tipoTexto = _tipoLabel[movimiento.tipo] ?? movimiento.tipo ?? '';
+
     return ListTile(
       leading: CircleAvatar(
-        backgroundColor: Colors.green.shade50,
+        backgroundColor: color.shade50,
         child: Text(
-          '+${movimiento.cantidad}',
+          '$signo${movimiento.cantidad}',
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.green.shade700,
+            color: color.shade700,
             fontSize: 12,
           ),
         ),
       ),
-      title: Text(movimiento.nombreProducto,
-          style: const TextStyle(fontWeight: FontWeight.w600)),
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(movimiento.nombreProducto,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+          ),
+          if (tipoTexto.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: esPositivo ? Colors.green.shade50 : Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                tipoTexto,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: esPositivo ? Colors.green.shade700 : Colors.orange.shade700,
+                ),
+              ),
+            ),
+        ],
+      ),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '${movimiento.stockAntes} → ${movimiento.stockDespues} unidades  ·  ${movimiento.userName}',
+            '${movimiento.stockAntes} → ${movimiento.stockDespues} uds  ·  ${movimiento.userName}',
             style: const TextStyle(fontSize: 12),
           ),
           if (movimiento.notas != null && movimiento.notas!.isNotEmpty)
@@ -353,6 +417,128 @@ class _RestockDialogState extends State<_RestockDialog> {
         ),
         FilledButton(
           onPressed: _guardando ? null : _guardar,
+          child: _guardando
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : const Text('Confirmar'),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Dialog ajuste (merma / muestra / otro) ───────────────────
+
+class _AjusteDialog extends StatefulWidget {
+  final Producto producto;
+  final InventarioService service;
+
+  const _AjusteDialog({required this.producto, required this.service});
+
+  @override
+  State<_AjusteDialog> createState() => _AjusteDialogState();
+}
+
+class _AjusteDialogState extends State<_AjusteDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _cantidadCtrl = TextEditingController();
+  final _notasCtrl = TextEditingController();
+  String _tipo = 'merma';
+  bool _guardando = false;
+
+  @override
+  void dispose() {
+    _cantidadCtrl.dispose();
+    _notasCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _guardar() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _guardando = true);
+    try {
+      final mov = await widget.service.ajuste(
+        productoId: widget.producto.id,
+        cantidad: int.parse(_cantidadCtrl.text),
+        tipo: _tipo,
+        notas: _notasCtrl.text.trim().isEmpty ? null : _notasCtrl.text.trim(),
+      );
+      if (mounted) Navigator.pop(context, mov);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _guardando = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Ajuste — ${widget.producto.nombre}'),
+      content: SizedBox(
+        width: 340,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Stock actual: ${widget.producto.stock}',
+                style: const TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _tipo,
+                decoration: const InputDecoration(labelText: 'Motivo'),
+                items: const [
+                  DropdownMenuItem(value: 'merma', child: Text('Merma')),
+                  DropdownMenuItem(value: 'muestra', child: Text('Muestra gratis')),
+                  DropdownMenuItem(value: 'otro', child: Text('Otro')),
+                ],
+                onChanged: (v) => setState(() => _tipo = v!),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _cantidadCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Cantidad a descontar',
+                  prefixText: '-',
+                ),
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Requerido';
+                  final n = int.tryParse(v);
+                  if (n == null || n <= 0) return 'Ingresa un número mayor a 0';
+                  if (n > widget.producto.stock) return 'No puede superar el stock actual';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _notasCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Notas (opcional)',
+                  hintText: 'Ej: 3 panes quemados, muestra para cliente',
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _guardando ? null : () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: _guardando ? null : _guardar,
+          style: FilledButton.styleFrom(backgroundColor: Colors.orange.shade700),
           child: _guardando
               ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
               : const Text('Confirmar'),

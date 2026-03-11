@@ -19,6 +19,21 @@ class InventarioService {
     return Movimiento.fromJson(data);
   }
 
+  Future<Movimiento> ajuste({
+    required String productoId,
+    required int cantidad,
+    required String tipo,
+    String? notas,
+  }) async {
+    final data = await _api.post('/inventario/ajuste', {
+      'producto_id': productoId,
+      'cantidad': cantidad,
+      'tipo': tipo,
+      if (notas != null && notas.isNotEmpty) 'notas': notas,
+    });
+    return Movimiento.fromJson(data);
+  }
+
   Future<List<Movimiento>> listarMovimientos({String? productoId, int limit = 50}) async {
     final params = '?limit=$limit${productoId != null ? '&producto_id=$productoId' : ''}';
     final data = await _api.get('/inventario/movimientos$params') as List;

@@ -5,6 +5,7 @@ class Movimiento {
   final int cantidad;
   final int stockAntes;
   final int stockDespues;
+  final String? tipo;
   final String? notas;
   final String userName;
   final DateTime createdAt;
@@ -16,6 +17,7 @@ class Movimiento {
     required this.cantidad,
     required this.stockAntes,
     required this.stockDespues,
+    this.tipo,
     this.notas,
     required this.userName,
     required this.createdAt,
@@ -28,6 +30,7 @@ class Movimiento {
         cantidad: j['cantidad'],
         stockAntes: j['stock_antes'],
         stockDespues: j['stock_despues'],
+        tipo: j['tipo'],
         notas: j['notas'],
         userName: j['user_name'],
         createdAt: DateTime.parse(j['created_at']),
