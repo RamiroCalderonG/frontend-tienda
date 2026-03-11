@@ -56,7 +56,7 @@ class HomeScreen extends ConsumerWidget {
                   label: 'Ventas',
                   onTap: () => context.push('/ventas'),
                 ),
-                _ModuloCard(icon: Icons.bar_chart_outlined, label: 'Reportes', onTap: null),
+                _ModuloCard(icon: Icons.bar_chart_outlined, label: 'Reportes', onTap: () => context.push('/reportes')),
                 if (user?.isAdmin == true)
                   _ModuloCard(icon: Icons.people_outline, label: 'Usuarios', onTap: null),
               ],
