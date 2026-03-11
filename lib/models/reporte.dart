@@ -5,9 +5,9 @@ class ResumenPeriodo {
   final double total;
   final double efectivo;
   final double transferencia;
-  final double costoVentas;
-  final double ganancia;
   final double inversion;
+  final double merma;
+  final double ganancia;
 
   const ResumenPeriodo({
     required this.fechaInicio,
@@ -16,9 +16,9 @@ class ResumenPeriodo {
     required this.total,
     required this.efectivo,
     required this.transferencia,
-    required this.costoVentas,
-    required this.ganancia,
     required this.inversion,
+    required this.merma,
+    required this.ganancia,
   });
 
   factory ResumenPeriodo.fromJson(Map<String, dynamic> j) => ResumenPeriodo(
@@ -28,9 +28,9 @@ class ResumenPeriodo {
         total: (j['total'] as num).toDouble(),
         efectivo: (j['efectivo'] as num).toDouble(),
         transferencia: (j['transferencia'] as num).toDouble(),
-        costoVentas: (j['costo_ventas'] as num).toDouble(),
-        ganancia: (j['ganancia'] as num).toDouble(),
         inversion: (j['inversion'] as num).toDouble(),
+        merma: (j['merma'] as num).toDouble(),
+        ganancia: (j['ganancia'] as num).toDouble(),
       );
 }
 

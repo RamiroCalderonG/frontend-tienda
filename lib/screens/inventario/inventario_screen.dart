@@ -126,15 +126,21 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen>
               if (activos.isEmpty) {
                 return const Center(child: Text('No hay productos'));
               }
-              return ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: activos.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (_, i) => _ProductoRestockTile(
-                  producto: activos[i],
-                  onRestock: () => _doRestock(activos[i]),
-                  onAjuste: () => _doAjuste(activos[i]),
-                ),
+              return Column(
+                children: [
+                  _ValorInventarioHeader(productos: activos),
+                  const Divider(height: 1),
+                  Expanded(child: ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: activos.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (_, i) => _ProductoRestockTile(
+                      producto: activos[i],
+                      onRestock: () => _doRestock(activos[i]),
+                      onAjuste: () => _doAjuste(activos[i]),
+                    ),
+                  )),
+                ],
               );
             },
           ),
@@ -168,6 +174,88 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen>
                         ),
                       ),
                     ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Header valor de inventario ───────────────────────────────
+
+class _ValorInventarioHeader extends StatelessWidget {
+  final List<Producto> productos;
+  const _ValorInventarioHeader({required this.productos});
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 2);
+    final valorCosto = productos.fold(0.0, (s, p) => s + p.stock * p.costo);
+    final valorVenta = productos.fold(0.0, (s, p) => s + p.stock * p.precio);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: _MiniValorCard(
+              label: 'Invertido en stock',
+              value: fmt.format(valorCosto),
+              icon: Icons.price_change_outlined,
+              color: Colors.orange,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _MiniValorCard(
+              label: 'Valor a precio venta',
+              value: fmt.format(valorVenta),
+              icon: Icons.sell_outlined,
+              color: Colors.green,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniValorCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const _MiniValorCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: TextStyle(fontSize: 11, color: color)),
+                Text(value,
+                    style: TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.bold, color: color)),
+              ],
+            ),
+          ),
         ],
       ),
     );
