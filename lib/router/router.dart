@@ -5,6 +5,7 @@ import '../providers/auth_provider.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/productos/productos_screen.dart';
+import '../screens/ventas/ventas_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authAsync = ref.watch(authProvider);
@@ -34,6 +35,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/productos',
         builder: (context, state) => const ProductosScreen(),
+      ),
+      GoRoute(
+        path: '/ventas',
+        builder: (context, state) => const VentasScreen(),
       ),
     ],
   );
