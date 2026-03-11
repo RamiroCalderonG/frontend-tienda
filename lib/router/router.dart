@@ -8,6 +8,7 @@ import '../screens/productos/productos_screen.dart';
 import '../screens/ventas/ventas_screen.dart';
 import '../screens/reportes/reportes_screen.dart';
 import '../screens/usuarios/usuarios_screen.dart';
+import '../screens/inventario/inventario_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authAsync = ref.watch(authProvider);
@@ -49,6 +50,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/usuarios',
         builder: (context, state) => const UsuariosScreen(),
+      ),
+      GoRoute(
+        path: '/inventario',
+        builder: (context, state) => const InventarioScreen(),
       ),
     ],
   );
