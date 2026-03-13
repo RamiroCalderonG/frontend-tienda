@@ -77,6 +77,21 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen>
     }
   }
 
+  Future<void> _doHistorial(Producto producto) async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => _HistorialProductoSheet(
+        producto: producto,
+        service: _service,
+        fmtFecha: _fmtFecha,
+      ),
+    );
+  }
+
   Future<void> _doAjuste(Producto producto) async {
     final result = await showDialog<Movimiento>(
       context: context,
@@ -138,6 +153,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen>
                       producto: activos[i],
                       onRestock: () => _doRestock(activos[i]),
                       onAjuste: () => _doAjuste(activos[i]),
+                      onHistorial: () => _doHistorial(activos[i]),
                     ),
                   )),
                 ],
@@ -268,11 +284,13 @@ class _ProductoRestockTile extends StatelessWidget {
   final Producto producto;
   final VoidCallback onRestock;
   final VoidCallback onAjuste;
+  final VoidCallback onHistorial;
 
   const _ProductoRestockTile({
     required this.producto,
     required this.onRestock,
     required this.onAjuste,
+    required this.onHistorial,
   });
 
   @override
@@ -309,6 +327,12 @@ class _ProductoRestockTile extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           IconButton(
+            onPressed: onHistorial,
+            icon: const Icon(Icons.history),
+            color: Colors.indigo.shade300,
+            tooltip: 'Historial',
+          ),
+          IconButton(
             onPressed: onAjuste,
             icon: const Icon(Icons.remove_circle_outline),
             color: Colors.orange.shade700,
@@ -341,8 +365,13 @@ const _tipoLabel = {
 class _MovimientoTile extends StatelessWidget {
   final Movimiento movimiento;
   final DateFormat fmtFecha;
+  final NumberFormat? fmtMoneda;
 
-  const _MovimientoTile({required this.movimiento, required this.fmtFecha});
+  const _MovimientoTile({
+    required this.movimiento,
+    required this.fmtFecha,
+    this.fmtMoneda,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -393,6 +422,11 @@ class _MovimientoTile extends StatelessWidget {
             '${movimiento.stockAntes} → ${movimiento.stockDespues} uds  ·  ${movimiento.userName}',
             style: const TextStyle(fontSize: 12),
           ),
+          if (movimiento.tipo == 'restock' && movimiento.costoUnitario != null && fmtMoneda != null)
+            Text(
+              'Costo unitario: ${fmtMoneda!.format(movimiento.costoUnitario)}',
+              style: TextStyle(fontSize: 11, color: Colors.green.shade700),
+            ),
           if (movimiento.notas != null && movimiento.notas!.isNotEmpty)
             Text(movimiento.notas!,
                 style: const TextStyle(fontSize: 11, color: Colors.grey)),
@@ -402,7 +436,192 @@ class _MovimientoTile extends StatelessWidget {
         fmtFecha.format(movimiento.createdAt),
         style: const TextStyle(fontSize: 11, color: Colors.grey),
       ),
-      isThreeLine: movimiento.notas != null && movimiento.notas!.isNotEmpty,
+      isThreeLine: movimiento.tipo == 'restock' && movimiento.costoUnitario != null ||
+          (movimiento.notas != null && movimiento.notas!.isNotEmpty),
+    );
+  }
+}
+
+// ── Bottom sheet historial por producto ──────────────────────
+
+class _HistorialProductoSheet extends StatefulWidget {
+  final Producto producto;
+  final InventarioService service;
+  final DateFormat fmtFecha;
+
+  const _HistorialProductoSheet({
+    required this.producto,
+    required this.service,
+    required this.fmtFecha,
+  });
+
+  @override
+  State<_HistorialProductoSheet> createState() => _HistorialProductoSheetState();
+}
+
+class _HistorialProductoSheetState extends State<_HistorialProductoSheet> {
+  List<Movimiento> _movimientos = [];
+  bool _cargando = true;
+  String? _error;
+
+  final _fmt = NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 2);
+
+  @override
+  void initState() {
+    super.initState();
+    _cargar();
+  }
+
+  Future<void> _cargar() async {
+    setState(() { _cargando = true; _error = null; });
+    try {
+      final result = await widget.service.listarMovimientos(
+        productoId: widget.producto.id,
+        limit: 100,
+      );
+      if (mounted) setState(() => _movimientos = result);
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _cargando = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final totalRestocks = _movimientos
+        .where((m) => m.tipo == 'restock')
+        .fold(0, (s, m) => s + m.cantidad);
+    final totalMerma = _movimientos
+        .where((m) => m.tipo == 'merma')
+        .fold(0, (s, m) => s + m.cantidad.abs());
+    final totalMuestra = _movimientos
+        .where((m) => m.tipo == 'muestra')
+        .fold(0, (s, m) => s + m.cantidad.abs());
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.4,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (_, scrollCtrl) => Column(
+        children: [
+          // ── Handle ──
+          Container(
+            margin: const EdgeInsets.only(top: 10, bottom: 4),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          // ── Header ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.producto.nombre,
+                        style: const TextStyle(
+                            fontSize: 17, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'Stock actual: ${widget.producto.stock} uds',
+                        style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+          ),
+          // ── Mini stats ──
+          if (!_cargando && _error == null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: Row(
+                children: [
+                  _StatChip(
+                    label: 'Restocks',
+                    value: '+$totalRestocks',
+                    color: Colors.green,
+                  ),
+                  const SizedBox(width: 8),
+                  _StatChip(
+                    label: 'Merma',
+                    value: '-$totalMerma',
+                    color: Colors.orange,
+                  ),
+                  const SizedBox(width: 8),
+                  _StatChip(
+                    label: 'Muestra',
+                    value: '-$totalMuestra',
+                    color: Colors.purple.shade300,
+                  ),
+                ],
+              ),
+            ),
+          const Divider(height: 1),
+          // ── Lista ──
+          Expanded(
+            child: _cargando
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                    ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
+                    : _movimientos.isEmpty
+                        ? const Center(child: Text('Sin movimientos registrados'))
+                        : ListView.separated(
+                            controller: scrollCtrl,
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _movimientos.length,
+                            separatorBuilder: (_, __) => const Divider(height: 1),
+                            itemBuilder: (_, i) => _MovimientoTile(
+                              movimiento: _movimientos[i],
+                              fmtFecha: widget.fmtFecha,
+                              fmtMoneda: _fmt,
+                            ),
+                          ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+
+  const _StatChip({required this.label, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Text(value,
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, color: color, fontSize: 14)),
+          Text(label,
+              style: TextStyle(fontSize: 11, color: color.withOpacity(0.8))),
+        ],
+      ),
     );
   }
 }
@@ -422,12 +641,23 @@ class _RestockDialog extends StatefulWidget {
 class _RestockDialogState extends State<_RestockDialog> {
   final _formKey = GlobalKey<FormState>();
   final _cantidadCtrl = TextEditingController();
+  late final TextEditingController _costoCtrl;
   final _notasCtrl = TextEditingController();
+  bool _actualizarCosto = false;
   bool _guardando = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _costoCtrl = TextEditingController(
+      text: widget.producto.costo.toStringAsFixed(2),
+    );
+  }
 
   @override
   void dispose() {
     _cantidadCtrl.dispose();
+    _costoCtrl.dispose();
     _notasCtrl.dispose();
     super.dispose();
   }
@@ -436,9 +666,15 @@ class _RestockDialogState extends State<_RestockDialog> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _guardando = true);
     try {
+      final costoIngresado = double.tryParse(_costoCtrl.text);
+      final costoDefault = widget.producto.costo;
+      final costoDistinto = costoIngresado != null && costoIngresado != costoDefault;
+
       final mov = await widget.service.restock(
         productoId: widget.producto.id,
         cantidad: int.parse(_cantidadCtrl.text),
+        costoUnitario: costoIngresado,
+        actualizarCosto: costoDistinto && _actualizarCosto,
         notas: _notasCtrl.text.trim().isEmpty ? null : _notasCtrl.text.trim(),
       );
       if (mounted) Navigator.pop(context, mov);
@@ -451,6 +687,11 @@ class _RestockDialogState extends State<_RestockDialog> {
     } finally {
       if (mounted) setState(() => _guardando = false);
     }
+  }
+
+  bool get _costoModificado {
+    final v = double.tryParse(_costoCtrl.text);
+    return v != null && v != widget.producto.costo;
   }
 
   @override
@@ -485,6 +726,37 @@ class _RestockDialogState extends State<_RestockDialog> {
                   return null;
                 },
               ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _costoCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Costo por unidad',
+                  prefixText: '\$',
+                  helperText: 'Costo registrado: \$${widget.producto.costo.toStringAsFixed(2)}',
+                ),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                onChanged: (_) => setState(() {}),
+                validator: (v) {
+                  if (v == null || v.isEmpty) return 'Requerido';
+                  final n = double.tryParse(v);
+                  if (n == null || n <= 0) return 'Ingresa un número mayor a 0';
+                  return null;
+                },
+              ),
+              if (_costoModificado) ...[
+                const SizedBox(height: 4),
+                CheckboxListTile(
+                  value: _actualizarCosto,
+                  onChanged: (v) => setState(() => _actualizarCosto = v!),
+                  title: const Text(
+                    'Actualizar precio de costo del producto',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  dense: true,
+                ),
+              ],
               const SizedBox(height: 12),
               TextFormField(
                 controller: _notasCtrl,

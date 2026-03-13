@@ -86,6 +86,12 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     await authService.logout();
     state = const AsyncValue.data(AuthState());
   }
+
+  void updateStore(Store store) {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    state = AsyncValue.data(current.copyWith(store: store));
+  }
 }
 
 final authProvider = AsyncNotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);

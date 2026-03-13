@@ -68,6 +68,12 @@ class HomeScreen extends ConsumerWidget {
                     label: 'Usuarios',
                     onTap: () => context.push('/usuarios'),
                   ),
+                if (user?.isAdmin == true)
+                  _ModuloCard(
+                    icon: Icons.tune_outlined,
+                    label: 'Ajustes',
+                    onTap: () => context.push('/ajustes'),
+                  ),
               ],
             ),
           ],

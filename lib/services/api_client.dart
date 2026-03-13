@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'storage_service.dart';
 
@@ -12,7 +13,13 @@ class ApiException implements Exception {
 }
 
 class ApiClient {
-  static const String baseUrl = 'http://localhost:8000';
+  static String get baseUrl {
+    if (kIsWeb) {
+      // Usa el mismo host con el que se accedió al front (funciona desde cualquier IP)
+      return '${Uri.base.scheme}://${Uri.base.host}:8000';
+    }
+    return 'http://localhost:8000';
+  }
 
   final StorageService _storage;
 

@@ -28,9 +28,9 @@ class ResumenPeriodo {
         total: (j['total'] as num).toDouble(),
         efectivo: (j['efectivo'] as num).toDouble(),
         transferencia: (j['transferencia'] as num).toDouble(),
-        inversion: (j['inversion'] as num).toDouble(),
-        merma: (j['merma'] as num).toDouble(),
-        ganancia: (j['ganancia'] as num).toDouble(),
+        inversion: (j['inversion'] as num? ?? 0).toDouble(),
+        merma: (j['merma'] as num? ?? 0).toDouble(),
+        ganancia: (j['ganancia'] as num? ?? 0).toDouble(),
       );
 }
 

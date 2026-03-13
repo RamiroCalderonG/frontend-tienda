@@ -9,11 +9,15 @@ class InventarioService {
   Future<Movimiento> restock({
     required String productoId,
     required int cantidad,
+    double? costoUnitario,
+    bool actualizarCosto = false,
     String? notas,
   }) async {
     final data = await _api.post('/inventario/restock', {
       'producto_id': productoId,
       'cantidad': cantidad,
+      if (costoUnitario != null) 'costo_unitario': costoUnitario,
+      'actualizar_costo': actualizarCosto,
       if (notas != null && notas.isNotEmpty) 'notas': notas,
     });
     return Movimiento.fromJson(data);
