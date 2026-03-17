@@ -45,36 +45,49 @@ class HomeScreen extends ConsumerWidget {
             Wrap(
               spacing: 16,
               runSpacing: 16,
-              children: [
-                _ModuloCard(
-                  icon: Icons.inventory_2_outlined,
-                  label: 'Productos',
-                  onTap: () => context.push('/productos'),
-                ),
-                _ModuloCard(
-                  icon: Icons.point_of_sale_outlined,
-                  label: 'Ventas',
-                  onTap: () => context.push('/ventas'),
-                ),
-                _ModuloCard(icon: Icons.bar_chart_outlined, label: 'Reportes', onTap: () => context.push('/reportes')),
-                _ModuloCard(
-                  icon: Icons.warehouse_outlined,
-                  label: 'Inventario',
-                  onTap: () => context.push('/inventario'),
-                ),
-                if (user?.isAdmin == true)
-                  _ModuloCard(
-                    icon: Icons.people_outline,
-                    label: 'Usuarios',
-                    onTap: () => context.push('/usuarios'),
-                  ),
-                if (user?.isAdmin == true)
-                  _ModuloCard(
-                    icon: Icons.tune_outlined,
-                    label: 'Ajustes',
-                    onTap: () => context.push('/ajustes'),
-                  ),
-              ],
+              children: user?.isSuperAdmin == true
+                  // ── Vista superadmin ──────────────────────
+                  ? [
+                      _ModuloCard(
+                        icon: Icons.add_business_outlined,
+                        label: 'Tiendas',
+                        onTap: () => context.push('/tiendas'),
+                      ),
+                    ]
+                  // ── Vista normal ──────────────────────────
+                  : [
+                      _ModuloCard(
+                        icon: Icons.inventory_2_outlined,
+                        label: 'Productos',
+                        onTap: () => context.push('/productos'),
+                      ),
+                      _ModuloCard(
+                        icon: Icons.point_of_sale_outlined,
+                        label: 'Ventas',
+                        onTap: () => context.push('/ventas'),
+                      ),
+                      _ModuloCard(
+                          icon: Icons.bar_chart_outlined,
+                          label: 'Reportes',
+                          onTap: () => context.push('/reportes')),
+                      _ModuloCard(
+                        icon: Icons.warehouse_outlined,
+                        label: 'Inventario',
+                        onTap: () => context.push('/inventario'),
+                      ),
+                      if (user?.isAdmin == true)
+                        _ModuloCard(
+                          icon: Icons.people_outline,
+                          label: 'Usuarios',
+                          onTap: () => context.push('/usuarios'),
+                        ),
+                      if (user?.isAdmin == true)
+                        _ModuloCard(
+                          icon: Icons.tune_outlined,
+                          label: 'Ajustes',
+                          onTap: () => context.push('/ajustes'),
+                        ),
+                    ],
             ),
           ],
         ),

@@ -50,7 +50,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const Icon(Icons.store, size: 64, color: Colors.indigo),
                   const SizedBox(height: 16),
                   const Text(
-                    'Iniciar sesión',
+                    'Iniciar ',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),

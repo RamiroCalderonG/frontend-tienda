@@ -24,5 +24,6 @@ class User {
         isActive: json['is_active'],
       );
 
-  bool get isAdmin => role == 'admin';
+  bool get isAdmin => role == 'admin' || role == 'superadmin';
+  bool get isSuperAdmin => role == 'superadmin';
 }

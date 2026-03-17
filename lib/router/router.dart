@@ -10,6 +10,7 @@ import '../screens/reportes/reportes_screen.dart';
 import '../screens/usuarios/usuarios_screen.dart';
 import '../screens/inventario/inventario_screen.dart';
 import '../screens/ajustes/ajustes_screen.dart';
+import '../screens/tiendas/tiendas_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authAsync = ref.watch(authProvider);
@@ -59,6 +60,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/ajustes',
         builder: (context, state) => const AjustesScreen(),
+      ),
+      GoRoute(
+        path: '/tiendas',
+        builder: (context, state) => const TiendasScreen(),
       ),
     ],
   );
