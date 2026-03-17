@@ -1,0 +1,30 @@
+name: Deploy Flutter Web
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.29.0'
+          channel: 'stable'
+
+      - name: Build Flutter Web
+        run: flutter build web --release
+
+      - name: Deploy a LXC
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 192.168.10.41
+          username: tienda
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "build/web/*"
+          target: "/home/tienda/web"
+          strip_components: 2

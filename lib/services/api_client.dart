@@ -14,11 +14,21 @@ class ApiException implements Exception {
 
 class ApiClient {
   static String get baseUrl {
+    // Permite sobreescribir con --dart-define=API_URL=...
+    const apiUrl = String.fromEnvironment('API_URL');
+    if (apiUrl.isNotEmpty) return apiUrl;
+
     if (kIsWeb) {
-      // Usa el mismo host con el que se accedió al front (funciona desde cualquier IP)
-      return '${Uri.base.scheme}://${Uri.base.host}:8000';
+      final port = Uri.base.port;
+      // En producción (puerto 80/443) usa Nginx /api
+      if (port == 80 || port == 443 || port == 0) {
+        return '${Uri.base.scheme}://${Uri.base.host}/api';
+      }
+      // En desarrollo local apunta directo al backend
+      return 'http://${Uri.base.host}:8000';
     }
-    return 'http://localhost:8000';
+    // Mobile producción
+    return 'http://192.168.10.41/api';
   }
 
   final StorageService _storage;
