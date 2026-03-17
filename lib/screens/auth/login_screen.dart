@@ -53,11 +53,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: colorScheme.primary,
+                      color: const Color(0xFFE65100),
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: colorScheme.primary.withOpacity(0.3),
+                          color: const Color(0xFFE65100).withOpacity(0.3),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         ),
@@ -193,6 +193,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             child: FilledButton(
                               onPressed: isLoading ? null : _login,
                               style: FilledButton.styleFrom(
+                                backgroundColor: const Color(0xFFE65100),
+                                foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
