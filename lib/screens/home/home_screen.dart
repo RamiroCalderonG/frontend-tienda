@@ -80,17 +80,17 @@ class HomeScreen extends ConsumerWidget {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(20),
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 14,
-                  mainAxisSpacing: 14,
-                  childAspectRatio: 1.2,
-                ),
-                itemCount: modulos.length,
-                itemBuilder: (context, i) => _ModuloCard(
-                  modulo: modulos[i],
-                  onTap: () => context.push(modulos[i].route),
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: Wrap(
+                  spacing: 14,
+                  runSpacing: 14,
+                  children: modulos
+                      .map((m) => _ModuloCard(
+                            modulo: m,
+                            onTap: () => context.push(m.route),
+                          ))
+                      .toList(),
                 ),
               ),
             ),
@@ -121,39 +121,36 @@ class _ModuloCard extends StatelessWidget {
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(16),
+      elevation: 0,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
+          width: 150,
+          height: 130,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            border: Border.all(color: Colors.grey.shade200),
           ),
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: cs.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(modulo.icon, size: 24, color: cs.primary),
+                child: Icon(modulo.icon, size: 22, color: cs.primary),
               ),
               Text(
                 modulo.label,
                 style: const TextStyle(
-                  fontSize: 15,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  letterSpacing: -0.3,
+                  letterSpacing: -0.2,
                 ),
               ),
             ],
