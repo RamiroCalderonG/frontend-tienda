@@ -5,6 +5,9 @@ import '../services/api_client.dart';
 import '../services/storage_service.dart';
 import '../services/auth_service.dart';
 import 'categorias_provider.dart';
+import 'productos_provider.dart';
+import 'users_provider.dart';
+import 'tiendas_provider.dart';
 
 // Providers de servicios
 final storageServiceProvider = Provider<StorageService>((ref) => StorageService());
@@ -86,6 +89,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     final authService = ref.read(authServiceProvider);
     await authService.logout();
     ref.invalidate(categoriasProvider);
+    ref.invalidate(productosProvider);
+    ref.invalidate(usersProvider);
+    ref.invalidate(tiendasProvider);
     state = const AsyncValue.data(AuthState());
   }
 
