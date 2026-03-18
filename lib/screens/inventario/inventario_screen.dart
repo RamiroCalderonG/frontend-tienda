@@ -18,6 +18,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabs;
   List<Movimiento> _movimientos = [];
+  List<LoteVencimiento> _vencimientos = [];
   bool _cargandoHistorial = false;
 
   final _fmtFecha = DateFormat('dd/MM/yyyy HH:mm');
@@ -29,6 +30,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen>
     _tabs.addListener(() {
       if (_tabs.index == 1 && _movimientos.isEmpty) _cargarHistorial();
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _cargarVencimientos());
   }
 
   @override
@@ -39,6 +41,13 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen>
 
   InventarioService get _service =>
       InventarioService(ref.read(apiClientProvider));
+
+  Future<void> _cargarVencimientos() async {
+    try {
+      final result = await _service.listarVencimientos(dias: 3);
+      if (mounted) setState(() => _vencimientos = result);
+    } catch (_) {}
+  }
 
   Future<void> _cargarHistorial() async {
     setState(() => _cargandoHistorial = true);
@@ -144,6 +153,20 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen>
               return Column(
                 children: [
                   _ValorInventarioHeader(productos: activos),
+                  if (_vencimientos.isNotEmpty) ...[
+                    const Divider(height: 1),
+                    _VencimientosAlerta(
+                      vencimientos: _vencimientos,
+                      onDeclararMerma: (lote) async {
+                        final producto = activos.firstWhere(
+                          (p) => p.id == lote.productoId,
+                          orElse: () => activos.first,
+                        );
+                        await _doAjuste(producto);
+                        await _cargarVencimientos();
+                      },
+                    ),
+                  ],
                   const Divider(height: 1),
                   Expanded(child: ListView.separated(
                     padding: const EdgeInsets.all(16),
@@ -645,6 +668,7 @@ class _RestockDialogState extends State<_RestockDialog> {
   final _notasCtrl = TextEditingController();
   bool _actualizarCosto = false;
   bool _guardando = false;
+  DateTime? _fechaCaducidad;
 
   @override
   void initState() {
@@ -661,6 +685,16 @@ class _RestockDialogState extends State<_RestockDialog> {
     super.dispose();
   }
 
+  Future<void> _pickFecha() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().add(const Duration(days: 3)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked != null) setState(() => _fechaCaducidad = picked);
+  }
+
   Future<void> _guardar() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _guardando = true);
@@ -670,12 +704,16 @@ class _RestockDialogState extends State<_RestockDialog> {
       final costoUnitario = costoTotal != null && cantidad > 0 ? costoTotal / cantidad : null;
       final costoDefault = widget.producto.costo;
       final costoDistinto = costoUnitario != null && costoUnitario != costoDefault;
+      final fechaStr = _fechaCaducidad != null
+          ? '${_fechaCaducidad!.year}-${_fechaCaducidad!.month.toString().padLeft(2, '0')}-${_fechaCaducidad!.day.toString().padLeft(2, '0')}'
+          : null;
 
       final mov = await widget.service.restock(
         productoId: widget.producto.id,
         cantidad: cantidad,
         costoUnitario: costoUnitario,
         actualizarCosto: costoDistinto && _actualizarCosto,
+        fechaCaducidad: fechaStr,
         notas: _notasCtrl.text.trim().isEmpty ? null : _notasCtrl.text.trim(),
       );
       if (mounted) Navigator.pop(context, mov);
@@ -767,6 +805,25 @@ class _RestockDialogState extends State<_RestockDialog> {
                   dense: true,
                 ),
               ],
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: _pickFecha,
+                borderRadius: BorderRadius.circular(8),
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: 'Fecha de caducidad (opcional)',
+                    suffixIcon: Icon(Icons.calendar_today_outlined, size: 18),
+                  ),
+                  child: Text(
+                    _fechaCaducidad != null
+                        ? '${_fechaCaducidad!.day.toString().padLeft(2, '0')}/${_fechaCaducidad!.month.toString().padLeft(2, '0')}/${_fechaCaducidad!.year}'
+                        : 'Sin caducidad',
+                    style: TextStyle(
+                      color: _fechaCaducidad != null ? null : Colors.grey,
+                    ),
+                  ),
+                ),
+              ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _notasCtrl,
@@ -914,6 +971,69 @@ class _AjusteDialogState extends State<_AjusteDialog> {
               : const Text('Confirmar'),
         ),
       ],
+    );
+  }
+}
+
+// ── Alertas de vencimientos ──────────────────────────────────
+
+class _VencimientosAlerta extends StatelessWidget {
+  final List<LoteVencimiento> vencimientos;
+  final Future<void> Function(LoteVencimiento) onDeclararMerma;
+
+  const _VencimientosAlerta({required this.vencimientos, required this.onDeclararMerma});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.orange.shade50,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700, size: 18),
+              const SizedBox(width: 6),
+              Text(
+                '${vencimientos.length} lote${vencimientos.length > 1 ? 's' : ''} por vencer',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.orange.shade800,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ...vencimientos.map((lote) => Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${lote.nombreProducto} — ${lote.cantidad} uds — '
+                    '${lote.diasRestantes == 0 ? 'Vence HOY' : 'Vence en ${lote.diasRestantes} día${lote.diasRestantes > 1 ? 's' : ''}'}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: lote.diasRestantes == 0 ? Colors.red.shade700 : Colors.orange.shade900,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => onDeclararMerma(lote),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red.shade700,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: const Size(0, 30),
+                  ),
+                  child: const Text('Declarar merma', style: TextStyle(fontSize: 12)),
+                ),
+              ],
+            ),
+          )),
+        ],
+      ),
     );
   }
 }
