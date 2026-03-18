@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../models/reporte.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/reporte_service.dart';
+import '../../services/producto_service.dart';
 
 class ReportesScreen extends ConsumerStatefulWidget {
   const ReportesScreen({super.key});
@@ -23,6 +24,7 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen>
   List<ProductoTop> _productosTop = [];
   List<ProductoStockBajo> _stockBajo = [];
   MapaVentas? _mapa;
+  double _valorPorVender = 0;
   bool _cargando = false;
 
   final _fmt = DateFormat('dd/MM/yyyy');
@@ -45,6 +47,7 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen>
   }
 
   ReporteService get _service => ReporteService(ref.read(apiClientProvider));
+  ProductoService get _productoService => ProductoService(ref.read(apiClientProvider));
 
   Future<void> _cargar() async {
     setState(() => _cargando = true);
@@ -55,14 +58,19 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen>
         _service.getProductosTop(_inicio, _fin),
         _service.getStockBajo(),
         _service.getMapaVentas(_inicio, _fin),
+        _productoService.listar(),
       ]);
       if (mounted) {
+        final productos = results[5] as List;
+        final valorVenta = productos.fold<double>(
+          0, (s, p) => s + p.stock * p.precio);
         setState(() {
           _resumen = results[0] as ResumenPeriodo;
           _ventasPorDia = results[1] as List<VentaDia>;
           _productosTop = results[2] as List<ProductoTop>;
           _stockBajo = results[3] as List<ProductoStockBajo>;
           _mapa = results[4] as MapaVentas;
+          _valorPorVender = valorVenta;
         });
       }
     } catch (e) {
@@ -143,7 +151,7 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen>
             child: TabBarView(
               controller: _tabs,
               children: [
-                _TabResumen(resumen: _resumen, fmtMoney: _fmtMoney),
+                _TabResumen(resumen: _resumen, fmtMoney: _fmtMoney, valorPorVender: _valorPorVender),
                 _TabPorDia(ventas: _ventasPorDia, fmtMoney: _fmtMoney, fmt: _fmt),
                 _TabProductos(productos: _productosTop, fmtMoney: _fmtMoney),
                 _TabStockBajo(items: _stockBajo),
@@ -162,7 +170,8 @@ class _ReportesScreenState extends ConsumerState<ReportesScreen>
 class _TabResumen extends StatelessWidget {
   final ResumenPeriodo? resumen;
   final NumberFormat fmtMoney;
-  const _TabResumen({required this.resumen, required this.fmtMoney});
+  final double valorPorVender;
+  const _TabResumen({required this.resumen, required this.fmtMoney, required this.valorPorVender});
 
   @override
   Widget build(BuildContext context) {
@@ -187,6 +196,8 @@ class _TabResumen extends StatelessWidget {
               icon: Icons.delete_outline, color: Colors.red.shade400),
           _StatCard(label: 'Ganancia neta', value: fmtMoney.format(resumen!.ganancia),
               icon: Icons.trending_up, color: resumen!.ganancia >= 0 ? Colors.green.shade700 : Colors.red),
+          _StatCard(label: 'Valor por vender', value: fmtMoney.format(valorPorVender),
+              icon: Icons.storefront_outlined, color: Colors.purple),
         ],
       ),
     );
