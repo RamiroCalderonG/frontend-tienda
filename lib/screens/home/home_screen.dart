@@ -78,19 +78,26 @@ class HomeScreen extends ConsumerWidget {
           const Divider(height: 1),
           // Grid
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: Wrap(
-                  spacing: 14,
-                  runSpacing: 14,
-                  children: modulos
-                      .map((m) => _ModuloCard(
-                            modulo: m,
-                            onTap: () => context.push(m.route),
-                          ))
-                      .toList(),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 340),
+                  child: GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 14,
+                      mainAxisSpacing: 14,
+                      childAspectRatio: 1.15,
+                    ),
+                    itemCount: modulos.length,
+                    itemBuilder: (context, i) => _ModuloCard(
+                      modulo: modulos[i],
+                      onTap: () => context.push(modulos[i].route),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -126,8 +133,6 @@ class _ModuloCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          width: 150,
-          height: 130,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: Colors.grey.shade200),
