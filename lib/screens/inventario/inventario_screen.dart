@@ -649,9 +649,8 @@ class _RestockDialogState extends State<_RestockDialog> {
   @override
   void initState() {
     super.initState();
-    _costoCtrl = TextEditingController(
-      text: widget.producto.costo.toStringAsFixed(2),
-    );
+    _costoCtrl = TextEditingController();
+    _cantidadCtrl.addListener(() => setState(() {}));
   }
 
   @override
@@ -666,14 +665,16 @@ class _RestockDialogState extends State<_RestockDialog> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _guardando = true);
     try {
-      final costoIngresado = double.tryParse(_costoCtrl.text);
+      final costoTotal = double.tryParse(_costoCtrl.text);
+      final cantidad = int.parse(_cantidadCtrl.text);
+      final costoUnitario = costoTotal != null && cantidad > 0 ? costoTotal / cantidad : null;
       final costoDefault = widget.producto.costo;
-      final costoDistinto = costoIngresado != null && costoIngresado != costoDefault;
+      final costoDistinto = costoUnitario != null && costoUnitario != costoDefault;
 
       final mov = await widget.service.restock(
         productoId: widget.producto.id,
-        cantidad: int.parse(_cantidadCtrl.text),
-        costoUnitario: costoIngresado,
+        cantidad: cantidad,
+        costoUnitario: costoUnitario,
         actualizarCosto: costoDistinto && _actualizarCosto,
         notas: _notasCtrl.text.trim().isEmpty ? null : _notasCtrl.text.trim(),
       );
@@ -689,9 +690,16 @@ class _RestockDialogState extends State<_RestockDialog> {
     }
   }
 
+  double? get _costoUnitarioCalculado {
+    final total = double.tryParse(_costoCtrl.text);
+    final cant = int.tryParse(_cantidadCtrl.text);
+    if (total == null || cant == null || cant <= 0) return null;
+    return total / cant;
+  }
+
   bool get _costoModificado {
-    final v = double.tryParse(_costoCtrl.text);
-    return v != null && v != widget.producto.costo;
+    final u = _costoUnitarioCalculado;
+    return u != null && u != widget.producto.costo;
   }
 
   @override
@@ -730,9 +738,11 @@ class _RestockDialogState extends State<_RestockDialog> {
               TextFormField(
                 controller: _costoCtrl,
                 decoration: InputDecoration(
-                  labelText: 'Costo por unidad',
+                  labelText: 'Costo total de compra',
                   prefixText: '\$',
-                  helperText: 'Costo registrado: \$${widget.producto.costo.toStringAsFixed(2)}',
+                  helperText: _costoUnitarioCalculado != null
+                      ? 'Costo por unidad: \$${_costoUnitarioCalculado!.toStringAsFixed(2)}  •  Registrado: \$${widget.producto.costo.toStringAsFixed(2)}'
+                      : 'Costo registrado: \$${widget.producto.costo.toStringAsFixed(2)}',
                 ),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 onChanged: (_) => setState(() {}),
