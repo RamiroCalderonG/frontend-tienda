@@ -79,7 +79,13 @@ class TicketItem {
 
   bool get promoActiva => tienePromo && cantidad >= cantidadPromo!;
 
-  double get precioEfectivo => promoActiva ? precioPromo! : precio;
+  // precio_promocion es el precio TOTAL del bundle (ej. "3 por $50")
+  double get subtotal {
+    if (!promoActiva) return precio * cantidad;
+    final grupos = cantidad ~/ cantidadPromo!;
+    final resto  = cantidad %  cantidadPromo!;
+    return grupos * precioPromo! + resto * precio;
+  }
 
-  double get subtotal => precioEfectivo * cantidad;
+  double get precioEfectivo => subtotal / cantidad;
 }
