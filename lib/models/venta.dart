@@ -62,14 +62,24 @@ class TicketItem {
   final String productoId;
   final String nombre;
   final double precio;
+  final int? cantidadPromo;
+  final double? precioPromo;
   int cantidad;
 
   TicketItem({
     required this.productoId,
     required this.nombre,
     required this.precio,
+    this.cantidadPromo,
+    this.precioPromo,
     this.cantidad = 1,
   });
 
-  double get subtotal => precio * cantidad;
+  bool get tienePromo => cantidadPromo != null && precioPromo != null;
+
+  bool get promoActiva => tienePromo && cantidad >= cantidadPromo!;
+
+  double get precioEfectivo => promoActiva ? precioPromo! : precio;
+
+  double get subtotal => precioEfectivo * cantidad;
 }

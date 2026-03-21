@@ -1,4 +1,5 @@
 import 'categoria.dart';
+import 'promocion.dart';
 
 class Producto {
   final String id;
@@ -12,6 +13,7 @@ class Producto {
   final int stockMinimo;
   final bool activo;
   final Categoria? categoria;
+  final Promocion? promocion;
 
   const Producto({
     required this.id,
@@ -25,6 +27,7 @@ class Producto {
     required this.stockMinimo,
     required this.activo,
     this.categoria,
+    this.promocion,
   });
 
   bool get stockBajo => stock <= stockMinimo;
@@ -42,6 +45,9 @@ class Producto {
         activo: json['activo'],
         categoria: json['categoria'] != null
             ? Categoria.fromJson(json['categoria'])
+            : null,
+        promocion: json['promocion'] != null
+            ? Promocion.fromJson(json['promocion'])
             : null,
       );
 }

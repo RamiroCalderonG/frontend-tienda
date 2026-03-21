@@ -33,6 +33,8 @@ class _VentasScreenState extends ConsumerState<VentasScreen> {
           productoId: producto.id,
           nombre: producto.nombre,
           precio: producto.precio,
+          cantidadPromo: producto.promocion?.cantidadRequerida,
+          precioPromo: producto.promocion?.precioPromocion,
         ));
       }
     });
@@ -301,7 +303,26 @@ class _TicketItemRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(item.nombre, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                Text('\$${item.precio.toStringAsFixed(2)}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                if (item.promoActiva)
+                  Row(
+                    children: [
+                      Text(
+                        '\$${item.precio.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 11,
+                          decoration: TextDecoration.lineThrough,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '\$${item.precioPromo!.toStringAsFixed(2)}',
+                        style: const TextStyle(color: Colors.deepOrange, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  )
+                else
+                  Text('\$${item.precio.toStringAsFixed(2)}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
               ],
             ),
           ),
@@ -342,44 +363,71 @@ class _ProductoBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primaryContainer,
+    final promo = producto.promocion;
+    return Stack(
+      children: [
+        InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
+            ),
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text(
+                    producto.nombre,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '\$${producto.precio.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                if (promo != null)
+                  Text(
+                    '×${promo.cantidadRequerida} → \$${promo.precioPromocion.toStringAsFixed(2)}',
+                    style: const TextStyle(fontSize: 9, color: Colors.deepOrange, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                Text(
+                  'Stock: ${producto.stock}',
+                  style: const TextStyle(fontSize: 10, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
         ),
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Text(
-                producto.nombre,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        if (promo != null)
+          Positioned(
+            top: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              decoration: const BoxDecoration(
+                color: Colors.deepOrange,
+                borderRadius: BorderRadius.only(
+                  topRight: Radius.circular(12),
+                  bottomLeft: Radius.circular(8),
+                ),
               ),
+              child: const Text('PROMO', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
             ),
-            const SizedBox(height: 4),
-            Text(
-              '\$${producto.precio.toStringAsFixed(2)}',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-            Text(
-              'Stock: ${producto.stock}',
-              style: const TextStyle(fontSize: 10, color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
+          ),
+      ],
     );
   }
 }
