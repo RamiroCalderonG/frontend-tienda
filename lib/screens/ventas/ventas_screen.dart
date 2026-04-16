@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/producto.dart';
@@ -155,7 +156,7 @@ class _VentasScreenState extends ConsumerState<VentasScreen> {
                   padding: const EdgeInsets.all(12),
                   gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: 160,
-                    mainAxisExtent: 100,
+                    mainAxisExtent: 130,
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
                   ),
@@ -364,6 +365,8 @@ class _ProductoBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final promo = producto.promocion;
+    final hasFoto = producto.foto != null && producto.foto!.isNotEmpty;
+
     return Stack(
       children: [
         InkWell(
@@ -375,37 +378,49 @@ class _ProductoBtn extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
             ),
-            padding: const EdgeInsets.all(10),
+            clipBehavior: Clip.antiAlias,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                if (hasFoto)
+                  Expanded(
+                    flex: 3,
+                    child: Image.memory(
+                      base64Decode(producto.foto!),
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 Expanded(
-                  child: Text(
-                    producto.nombre,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  flex: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          producto.nombre,
+                          textAlign: TextAlign.center,
+                          maxLines: hasFoto ? 1 : 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                        ),
+                        Text(
+                          '\$${producto.precio.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        if (promo != null)
+                          Text(
+                            '×${promo.cantidadRequerida} → \$${promo.precioPromocion.toStringAsFixed(2)}',
+                            style: const TextStyle(fontSize: 9, color: Colors.deepOrange, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '\$${producto.precio.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                if (promo != null)
-                  Text(
-                    '×${promo.cantidadRequerida} → \$${promo.precioPromocion.toStringAsFixed(2)}',
-                    style: const TextStyle(fontSize: 9, color: Colors.deepOrange, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
-                Text(
-                  'Stock: ${producto.stock}',
-                  style: const TextStyle(fontSize: 10, color: Colors.grey),
                 ),
               ],
             ),

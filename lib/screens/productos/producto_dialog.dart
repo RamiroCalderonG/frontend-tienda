@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../models/producto.dart';
 import '../../providers/categorias_provider.dart';
 import '../../providers/productos_provider.dart';
@@ -22,6 +24,7 @@ class _ProductoDialogState extends ConsumerState<ProductoDialog> {
   late final TextEditingController _stock;
   late final TextEditingController _stockMinimo;
   String? _categoriaId;
+  String? _fotoBase64;
   bool _activo = true;
   bool _loading = false;
 
@@ -38,6 +41,7 @@ class _ProductoDialogState extends ConsumerState<ProductoDialog> {
     _stock = TextEditingController(text: p?.stock.toString() ?? '0');
     _stockMinimo = TextEditingController(text: p?.stockMinimo.toString() ?? '5');
     _categoriaId = p?.categoriaId;
+    _fotoBase64 = p?.foto;
     _activo = p?.activo ?? true;
   }
 
@@ -52,6 +56,14 @@ class _ProductoDialogState extends ConsumerState<ProductoDialog> {
     super.dispose();
   }
 
+  Future<void> _pickFoto() async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.gallery, maxWidth: 400, maxHeight: 400, imageQuality: 75);
+    if (file == null) return;
+    final bytes = await file.readAsBytes();
+    setState(() => _fotoBase64 = base64Encode(bytes));
+  }
+
   Future<void> _guardar() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
@@ -64,6 +76,7 @@ class _ProductoDialogState extends ConsumerState<ProductoDialog> {
       'stock': int.parse(_stock.text),
       'stock_minimo': int.parse(_stockMinimo.text),
       'categoria_id': _categoriaId,
+      'foto': _fotoBase64,
       if (esEdicion) 'activo': _activo,
     };
 
@@ -99,6 +112,47 @@ class _ProductoDialogState extends ConsumerState<ProductoDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // ── Foto ──────────────────────────────────────
+                GestureDetector(
+                  onTap: _pickFoto,
+                  child: Container(
+                    height: 120,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: _fotoBase64 != null
+                        ? Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Image.memory(base64Decode(_fotoBase64!), fit: BoxFit.cover),
+                              Positioned(
+                                bottom: 4,
+                                right: 4,
+                                child: GestureDetector(
+                                  onTap: () => setState(() => _fotoBase64 = null),
+                                  child: Container(
+                                    decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                                    padding: const EdgeInsets.all(4),
+                                    child: const Icon(Icons.close, size: 14, color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add_photo_alternate_outlined, size: 32, color: Colors.grey),
+                              SizedBox(height: 4),
+                              Text('Agregar foto', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                            ],
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _nombre,
                   decoration: const InputDecoration(labelText: 'Nombre *', border: OutlineInputBorder()),

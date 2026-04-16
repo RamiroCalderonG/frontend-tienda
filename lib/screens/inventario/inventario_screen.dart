@@ -152,7 +152,7 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen>
               }
               return Column(
                 children: [
-                  _ValorInventarioHeader(productos: activos),
+                  const _ValorInventarioHeader(),
                   if (_vencimientos.isNotEmpty) ...[
                     const Divider(height: 1),
                     _VencimientosAlerta(
@@ -221,15 +221,36 @@ class _InventarioScreenState extends ConsumerState<InventarioScreen>
 
 // ── Header valor de inventario ───────────────────────────────
 
-class _ValorInventarioHeader extends StatelessWidget {
-  final List<Producto> productos;
-  const _ValorInventarioHeader({required this.productos});
+class _ValorInventarioHeader extends ConsumerStatefulWidget {
+  const _ValorInventarioHeader();
+
+  @override
+  ConsumerState<_ValorInventarioHeader> createState() => _ValorInventarioHeaderState();
+}
+
+class _ValorInventarioHeaderState extends ConsumerState<_ValorInventarioHeader> {
+  double? _invertido;
+  double? _venta;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _cargar());
+  }
+
+  Future<void> _cargar() async {
+    try {
+      final valor = await InventarioService(ref.read(apiClientProvider)).fetchValorStock();
+      if (mounted) setState(() { _invertido = valor.totalInvertido; _venta = valor.totalValorVenta; });
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Re-fetch cuando cambia el inventario (restock / ajuste)
+    ref.listen(productosProvider, (_, __) => _cargar());
+
     final fmt = NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 2);
-    final valorCosto = productos.fold(0.0, (s, p) => s + p.stock * p.costo);
-    final valorVenta = productos.fold(0.0, (s, p) => s + p.stock * p.precio);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -238,7 +259,7 @@ class _ValorInventarioHeader extends StatelessWidget {
           Expanded(
             child: _MiniValorCard(
               label: 'Invertido en stock',
-              value: fmt.format(valorCosto),
+              value: _invertido != null ? fmt.format(_invertido) : '...',
               icon: Icons.price_change_outlined,
               color: Colors.orange,
             ),
@@ -247,7 +268,7 @@ class _ValorInventarioHeader extends StatelessWidget {
           Expanded(
             child: _MiniValorCard(
               label: 'Valor a precio venta',
-              value: fmt.format(valorVenta),
+              value: _venta != null ? fmt.format(_venta) : '...',
               icon: Icons.sell_outlined,
               color: Colors.green,
             ),

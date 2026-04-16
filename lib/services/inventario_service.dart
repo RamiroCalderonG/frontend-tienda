@@ -49,4 +49,21 @@ class InventarioService {
     final data = await _api.get('/inventario/vencimientos?dias=$dias') as List;
     return data.map((e) => LoteVencimiento.fromJson(e)).toList();
   }
+
+  Future<ValorStock> fetchValorStock() async {
+    final data = await _api.get('/inventario/valor-stock') as Map<String, dynamic>;
+    return ValorStock.fromJson(data);
+  }
+}
+
+class ValorStock {
+  final double totalInvertido;
+  final double totalValorVenta;
+
+  const ValorStock({required this.totalInvertido, required this.totalValorVenta});
+
+  factory ValorStock.fromJson(Map<String, dynamic> j) => ValorStock(
+        totalInvertido: (j['total_invertido'] as num).toDouble(),
+        totalValorVenta: (j['total_valor_venta'] as num).toDouble(),
+      );
 }

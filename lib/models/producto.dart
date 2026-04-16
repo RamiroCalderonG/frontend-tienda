@@ -12,6 +12,7 @@ class Producto {
   final int stock;
   final int stockMinimo;
   final bool activo;
+  final String? foto;
   final Categoria? categoria;
   final Promocion? promocion;
 
@@ -26,6 +27,7 @@ class Producto {
     required this.stock,
     required this.stockMinimo,
     required this.activo,
+    this.foto,
     this.categoria,
     this.promocion,
   });
@@ -43,6 +45,7 @@ class Producto {
         stock: json['stock'],
         stockMinimo: json['stock_minimo'],
         activo: json['activo'],
+        foto: json['foto'],
         categoria: json['categoria'] != null
             ? Categoria.fromJson(json['categoria'])
             : null,
